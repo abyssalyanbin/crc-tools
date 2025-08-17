@@ -12,8 +12,13 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: 'pnpm' }
       - run: pnpm i
-      - run: pnpm -C packages/crc-core build && pnpm -C packages/crc-presets build
-      - run: cp -r examples/web-min ./_site
+      - run: pnpm -C packages/crc-core build
+      - run: pnpm -C packages/crc-presets build
+      - run: |
+          mkdir -p _site/crc-core _site/crc-presets
+          cp examples/web-min/index.html _site/index.html
+          cp packages/crc-core/dist/index.js _site/crc-core/index.js
+          cp packages/crc-presets/dist/index.json _site/crc-presets/index.json
       - uses: actions/upload-pages-artifact@v3
         with: { path: _site }
       - uses: actions/deploy-pages@v4
