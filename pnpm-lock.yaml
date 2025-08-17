@@ -8,6 +8,19 @@ importers:
 
   .: {}
 
+  examples/web-min:
+    dependencies:
+      '@crc/core':
+        specifier: workspace:*
+        version: link:../../packages/crc-core
+      '@crc/presets':
+        specifier: workspace:*
+        version: link:../../packages/crc-presets
+    devDependencies:
+      vite:
+        specifier: ^5.4.0
+        version: 5.4.19
+
   packages/crc-core:
     devDependencies:
       tsup:
