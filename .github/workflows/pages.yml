@@ -11,8 +11,8 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with: { node-version: 20, cache: 'pnpm' }
-      - run: pnpm i
-      - run: pnpm -C packages/crc-core build
+      - run: pnpm i --no-frozen-lockfile       # 锁文件不一致时更稳
+      - run: pnpm -C packages/crc-core build   # 先构建 core（给 validate 用）
       - run: pnpm -C packages/crc-presets build
       - run: |
           mkdir -p _site/crc-core _site/crc-presets

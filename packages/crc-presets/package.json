@@ -5,10 +5,13 @@
   "main": "dist/index.json",
   "files": ["dist"],
   "scripts": {
-   "prebuild": "node ./tools/validate.mjs",
-   "build": "mkdir -p dist && cp src/*.json dist/",
-   "test": "node ./tools/validate.mjs",
-   "lint": "echo skip",
-   "typecheck": "echo skip"
+    "prebuild": "node ./tools/validate.mjs",
+    "build": "mkdir -p dist && cp src/*.json dist/",
+    "test": "node ./tools/validate.mjs",
+    "lint": "echo skip",
+    "typecheck": "echo skip"
+  },
+  "devDependencies": {
+    "@crc/core": "workspace:*"
   }
 }
