@@ -1,0 +1,23 @@
+<!doctype html><meta charset="utf-8"/>
+<title>CRC Calculator (Demo)</title>
+<style>body{font:16px/1.4 system-ui;margin:24px;max-width:720px}.row{margin:12px 0}</style>
+<h1>CRC Calculator (Demo)</h1>
+<div class="row"><textarea id="data" rows="6" style="width:100%" placeholder="Enter ASCII text"></textarea></div>
+<div class="row">
+  <select id="preset"></select>
+  <button id="calc">Compute</button>
+</div>
+<pre id="out"></pre>
+<script type="module">
+  import { computeCRC } from "@crc/core";
+  import presets from "@crc/presets/dist/index.json" assert { type:"json" };
+  const sel = document.getElementById('preset');
+  presets.forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.text=p.name; sel.appendChild(o); });
+  const textBytes = s => new TextEncoder().encode(s);
+  document.getElementById('calc').onclick = ()=>{
+    const p = presets[+sel.value];
+    const params = { ...p, poly: BigInt(p.poly), init: BigInt(p.init), xorout: BigInt(p.xorout) };
+    const crc = computeCRC(textBytes(document.getElementById('data').value || "123456789"), params);
+    document.getElementById('out').textContent = `CRC = 0x${crc.toString(16).toUpperCase()}`;
+  };
+</script>
