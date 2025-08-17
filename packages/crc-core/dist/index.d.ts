@@ -8,4 +8,4 @@ type CRCParams = {
 };
 declare const computeCRC: (bytes: Uint8Array, p: CRCParams) => bigint;
 
-export { type CRCParams, computeCRC };
+export { type CRCParams, type CRCParams as Params, computeCRC };

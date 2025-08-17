@@ -1,23 +1,101 @@
-<!doctype html><meta charset="utf-8"/>
+<!doctype html>
+<meta charset="utf-8" />
 <title>CRC Calculator (Demo)</title>
-<style>body{font:16px/1.4 system-ui;margin:24px;max-width:720px}.row{margin:12px 0}</style>
-<h1>CRC Calculator (Demo)</h1>
-<div class="row"><textarea id="data" rows="6" style="width:100%" placeholder="Enter ASCII text"></textarea></div>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root { --gap: 14px; }
+  body{ font:16px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+        margin:24px; max-width:860px }
+  h1{ font-size:40px; margin:0 0 8px }
+  .row{ margin: var(--gap) 0 }
+  textarea{ width:100%; box-sizing:border-box; padding:10px; font:inherit }
+  select,button{ font:inherit; padding:8px 12px }
+  .grid{ display:grid; grid-template-columns: 1fr; gap: var(--gap) }
+  @media (min-width:720px){ .grid{ grid-template-columns: 1fr 1fr } }
+  .card{ border:1px solid #ddd; border-radius:12px; padding:14px }
+  .muted{ color:#555 }
+  pre{ background:#fafafa; border:1px solid #eee; padding:12px; border-radius:8px; overflow:auto }
+  .stickybar{ position:sticky; bottom:0; background:#fff; padding:10px 0 }
+</style>
+
+<h1>CRC Calculator <span class="muted">(Demo)</span></h1>
+
 <div class="row">
-  <select id="preset"></select>
-  <button id="calc">Compute</button>
+  <textarea id="data" rows="4" placeholder="Enter ASCII text (默认示例：123456789)">123456789</textarea>
 </div>
-<pre id="out"></pre>
+
+<div class="row grid">
+  <div class="card">
+    <label>Preset</label><br/>
+    <select id="preset"></select>
+    <div id="meta" class="muted" style="margin-top:8px"></div>
+  </div>
+  <div class="card">
+    <div><strong>"123456789" 校验向量</strong></div>
+    <div id="checkline" class="muted" style="margin-top:6px"></div>
+  </div>
+</div>
+
+<div class="row stickybar">
+  <button id="compute">Compute</button>
+  <button id="copy">Copy Result</button>
+  <span id="status" class="muted" style="margin-left:12px"></span>
+</div>
+
+<pre id="out">Result will appear here…</pre>
 <script type="module">
-  import { computeCRC } from "@crc/core";
-  import presets from "@crc/presets/dist/index.json" assert { type:"json" };
-  const sel = document.getElementById('preset');
-  presets.forEach((p,i)=>{ const o=document.createElement('option'); o.value=i; o.text=p.name; sel.appendChild(o); });
-  const textBytes = s => new TextEncoder().encode(s);
-  document.getElementById('calc').onclick = ()=>{
-    const p = presets[+sel.value];
-    const params = { ...p, poly: BigInt(p.poly), init: BigInt(p.init), xorout: BigInt(p.xorout) };
-    const crc = computeCRC(textBytes(document.getElementById('data').value || "123456789"), params);
-    document.getElementById('out').textContent = `CRC = 0x${crc.toString(16).toUpperCase()}`;
-  };
+  import { computeCRC } from "./crc-core/index.js";
+
+  const $sel = document.getElementById('preset');
+  const $data = document.getElementById('data');
+  const $btn = document.getElementById('compute');
+  const $out = document.getElementById('out');
+
+  const textBytes = s => new TextEncoder().encode(s ?? "");
+  const toHex = (x, bits) => x.toString(16).toUpperCase().padStart(Math.ceil(bits/4), '0');
+  const toBin = (x, bits) => x.toString(2).padStart(bits, '0');
+  const toParams = p => ({ width:p.width, poly:BigInt(p.poly), init:BigInt(p.init),
+                           refin:!!p.refin, refout:!!p.refout, xorout:BigInt(p.xorout) });
+
+  async function loadPresets() {
+    const res = await fetch("./crc-presets/index.json", { cache: "no-store" });
+    if (!res.ok) throw new Error("加载 ./crc-presets/index.json 失败");
+    return res.json();
+  }
+
+  function fillSelect(presets) {
+    $sel.innerHTML = "";
+    for (const p of presets) {
+      const o = document.createElement("option");
+      o.value = p.name; o.textContent = p.name;
+      $sel.appendChild(o);
+    }
+  }
+
+  function computeAndRender(presets) {
+    const name = $sel.value || presets[0].name;
+    const p = presets.find(x => x.name === name) ?? presets[0];
+    const params = toParams(p);
+    const input = $data.value || "123456789";
+    const crc = computeCRC(textBytes(input), params);
+    const hex = toHex(crc, params.width);
+    const dec = crc.toString(10);
+    const bin = toBin(crc, params.width);
+    const match = ("0x" + hex) === p.check.toUpperCase();
+
+    $out.textContent =
+`Preset: ${p.name}
+Input : ${JSON.stringify(input)}
+HEX   : 0x${hex}
+DEC   : ${dec}
+BIN   : ${bin}
+Check("123456789") = ${p.check} → ${match ? "✅ MATCH" : "❌ MISMATCH"}`;
+  }
+
+  (async () => {
+    const presets = await loadPresets();
+    fillSelect(presets);
+    computeAndRender(presets);
+    $btn.onclick = () => computeAndRender(presets);
+  })();
 </script>

@@ -9,21 +9,31 @@ export type CRCParams = {
 
 const reflectBits = (x: bigint, width: number) => {
   let r = 0n;
-  for (let i = 0; i < width; i++) if ((x >> BigInt(i)) & 1n) r |= 1n << BigInt(width - 1 - i);
+  for (let i = 0; i < width; i++) {
+    if ((x >> BigInt(i)) & 1n) r |= 1n << BigInt(width - 1 - i);
+  }
   return r;
 };
 
-export const makeTable = (width: number, poly: bigint, refin: boolean) => {
+const makeTable = (width: number, poly: bigint, refin: boolean) => {
   const W = BigInt(width);
   const mask = (1n << W) - 1n;
+
+  // 关键：refin=true 时，表驱动右移算法需要“反射后的多项式”
+  const P = refin ? reflectBits(poly, width) : poly;
+
   const tbl = new Array<bigint>(256);
   for (let i = 0; i < 256; i++) {
     let c = BigInt(i);
     if (refin) {
-      for (let k = 0; k < 8; k++) c = (c & 1n) ? (c >> 1n) ^ poly : (c >> 1n);
+      for (let k = 0; k < 8; k++) {
+        c = (c & 1n) ? (c >> 1n) ^ P : (c >> 1n);
+      }
     } else {
       c <<= (W - 8n);
-      for (let k = 0; k < 8; k++) c = (c & (1n << (W - 1n))) ? ((c << 1n) & mask) ^ poly : ((c << 1n) & mask);
+      for (let k = 0; k < 8; k++) {
+        c = (c & (1n << (W - 1n))) ? ((c << 1n) & mask) ^ P : ((c << 1n) & mask);
+      }
     }
     tbl[i] = c & mask;
   }

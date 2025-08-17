@@ -1,27 +1,42 @@
 // src/index.ts
 var reflectBits = (x, width) => {
   let r = 0n;
-  for (let i = 0; i < width; i++) if (x >> BigInt(i) & 1n) r |= 1n << BigInt(width - 1 - i);
+  for (let i = 0; i < width; i++) {
+    if (x >> BigInt(i) & 1n) r |= 1n << BigInt(width - 1 - i);
+  }
   return r;
 };
 var makeTable = (width, poly, refin) => {
   const W = BigInt(width);
   const mask = (1n << W) - 1n;
+  const P = refin ? reflectBits(poly, width) : poly;
   const tbl = new Array(256);
   for (let i = 0; i < 256; i++) {
     let c = BigInt(i);
     if (refin) {
-      for (let k = 0; k < 8; k++) c = c & 1n ? c >> 1n ^ poly : c >> 1n;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1n ? c >> 1n ^ P : c >> 1n;
+      }
     } else {
       c <<= W - 8n;
-      for (let k = 0; k < 8; k++) c = c & 1n << W - 1n ? c << 1n & mask ^ poly : c << 1n & mask;
+      for (let k = 0; k < 8; k++) {
+        c = c & 1n << W - 1n ? c << 1n & mask ^ P : c << 1n & mask;
+      }
     }
     tbl[i] = c & mask;
   }
   return { tbl, mask };
 };
+var _tableCache = /* @__PURE__ */ new Map();
+var keyOf = (p) => `${p.width}|${p.poly}|${p.refin ? 1 : 0}`;
 var computeCRC = (bytes, p) => {
-  const { tbl, mask } = makeTable(p.width, p.poly, p.refin);
+  const k = keyOf(p);
+  const cached = _tableCache.get(k);
+  const { tbl, mask } = cached ?? (() => {
+    const t = makeTable(p.width, p.poly, p.refin);
+    _tableCache.set(k, t);
+    return t;
+  })();
   let crc = p.init & mask;
   if (p.refin) {
     for (const b of bytes) crc = crc >> 8n ^ tbl[Number((crc ^ BigInt(b)) & 0xffn)];
